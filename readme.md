@@ -1,0 +1,255 @@
+# API con Amazon RDS utilizando MySQL
+
+1. [Inicialización del proyecto](#install)
+2. [Creacón de instancia MySQL con RDS en AWS](#mysqlInstance)
+3. [Creación de la tabla](#createTable)
+4. [Configurar security groups desde serverles.yml](#sgConfiguration)
+5. [Archivo de configuración para crear la conexión a la base de datos](#connection)
+6. [Obtener todos los registros de la tabla](#findAll)
+7. [Añadir un registro a la tabla](#addOne)
+
+<a name="install"></a>
+## Inicialización del proyecto
+
+Creamos el proyecto mediante el comando
+
+`sls create -t aws-nodejs -n curso-sls-crud-rds`
+
+Iniciamos node con
+
+`npm init -y`
+
+Instalamos las dependencias que vamos a utilizar:
+
+`npm install --save mysql querystring serverless-offline`
+
+<a name="mysqInstance"></a>
+## Creacón de instancia MySQL con RDS en AWS
+
+Creamos la instancia a través de la consola AWS dentro del servicio RDS como MySQL.
+
+  1. Establecemos el id de la instancia, usuario y contraseña.
+  2. Elegimos free tier y mantenemos los parámetros por defecto.
+  3. Establecemos que la base de datos sea pública dentro de los parámetros de configuración avanzados para poder trabajar con ella desde un cliente local. En este caso será necesario dar acceso a nuestra máquina mediante el security group por defecto que se ha establecido.
+
+En la lambda, en la pestaña de permisos, creamos un nuevo rol y establecemos la vpc, al menos dos subnets y el security group. Necesitaremos los IDs en el siguiente punto para automatizar este paso en la creación de nuevas lambdas.
+
+<a name="createTable"></a>
+## Creación de la tabla
+
+Desde un cliente MySQL creamos la tabla:
+
+~~~
+CREATE DATABASE IF NOT EXISTS curso_sls;
+
+CREATE TABLE curso_sls.todos (
+  id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+  todo VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP NULL
+);
+~~~
+
+<a name="sgConfiguration"></a>
+## Configurar security groups desde serverles.yml
+
+Dentro del archivo **serverless.yml** en la sección de *provider* añadimos los datos de la vpc:
+
+~~~
+provider:
+  name: aws
+  runtime: nodejs12.x
+  vpc:
+    securityGroupIds:
+      - sg-0f1a58e62dd6456c0
+    subnetIds:
+      - subnet-05565f251be671231
+      - subnet-0cec29573390f4ed7
+~~~
+
+<a name="connection"></a>
+## Archivo de configuración para crear la conexión a la base de datos
+
+Creamos un nuevo archivo **connection.js**.
+
+  1. Definimos las constantes que almacenarán los parámetros para poder realizar la conexión a la base de datos:
+
+  ~~~
+  const mysql = require('mysql')
+
+  const configDB = {
+    host: 'curso-sls-rds-mysql.cfuld5lbzlxg.us-east-1.rds.amazonaws.com',
+    user: 'curso_sls',
+    password: 'secret12',
+    port: '3306',
+    database: 'curso_sls',
+    debug: true
+  }
+  ~~~
+
+  2. Definimos la función que realizará la conexión:
+
+  ~~~
+  function initializeConnection(config) {
+    function addDisconnectHandler(connection) {
+      connection.on("error", function (error) {
+        if (error instanceof Error) {
+          if (error.code === "PROTOCOL_CONNECTION_LOST") {
+            console.error(error.stack);
+            console.log("Lost connection. Reconnecting...");
+
+            initializeConnection(connection.config);
+          } else if (error.fatal) {
+            throw error;
+          }
+        }
+      });
+    }
+    
+    const connection = mysql.createConnection(config);
+
+    // Add handlers.
+    addDisconnectHandler(connection);
+
+    connection.connect();
+    return connection;
+  }
+  ~~~
+
+  3. Instanciamos la conexión y la exportamos:
+
+  ~~~
+  const connection = initializeConnection(configDB);
+
+  module.exports = connection;
+  ~~~
+
+<a name="findAll"></a>
+## Obtener todos los registros de la tabla
+
+Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro de ella el archivo **todos.js** que incluirá todas las funciones referentes a la tabla *todos*.
+
+  1. Establecemos las constantes necesarias para trabajar con la base de datos:
+
+  ~~~
+  const connection = require('../connection');
+  const queryString = require('querystring');
+  ~~~
+
+  2. Definimos la función que realizará la consulta y devolverá los datos:
+
+  ~~~
+  module.exports.findAll = (event, context, callback) => {
+    context.callbackWaitsForEmptyEventLoop = false;
+    const sql = 'SELECT * FROM todos';
+    connection.query(sql, (error, rows) => {
+      if (error) {
+        callback({
+          statusCode: 500,
+          body: JSON.stringify(error)
+        })
+      } else {
+        callback(null, {
+          statusCode: 200,
+          body: JSON.stringify({
+            todos: rows
+          })
+        })
+      }
+    })
+  };
+  ~~~
+
+  3. Definimos la función dentro del archivo **serverless.yml**
+
+  ~~~
+  functions:
+  findAll:
+    handler: crud/todos.findAll
+    events:
+      - http:
+          path: todos
+          method: get
+  ~~~
+
+<a name="findOne"></a>
+## Obtener un registro de la tabla
+
+  1. Creamos una nueva función en **todos.js**
+
+~~~
+module.exports.findOne = (event, context, callback) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+  const sql = 'SELECT * FROM todos WHERE id = ?';
+  connection.query(sql, [event.pathParameters.todoId], (error, row) => {
+    if (error) {
+      callback({
+        statusCode: 500,
+        body: JSON.stringify(error)
+      })
+    } else {
+      callback(null, {
+        statusCode: 200,
+        body: JSON.stringify({
+          todo: row
+        })
+      })
+    }
+  })
+};
+~~~
+
+  2. Añadimos la nueva función al archivo **serverless.yml**
+
+~~~
+findOne:
+  handler: crud/todos.findOne
+  events:
+    - http:
+        path: todos/{todoId}
+        method: get
+~~~
+
+<a name="addOne"></a>
+## Añadir un registro a la tabla
+
+  1. Creamos la función para añadir un registro dentro del archivo **todos.js**
+
+~~~
+module.exports.create = (event, context, callback) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+
+  const body = queryString.parse(event['body']);
+  const data = {
+    todo: body.todo
+  }
+
+  const sql = 'INSERT INTO todos SET ?';
+  connection.query(sql, [data], (error, result) => {
+    if (error) {
+      callback({
+        statusCode: 500,
+        body: JSON.stringify(error)
+      })
+    } else {
+      callback(null, {
+        statusCode: 200,
+        body: JSON.stringify({
+          res: `Tarea insertada correctamente con id ${result.insertId}`
+        })
+      })
+    }
+  })
+};
+~~~
+
+  2. Actualizamos el parámetro *functions* dentro del archivo **serverless.yml** para incluir la función que acabamos de definir:
+
+~~~
+create:
+  handler: crud/todos.create
+  events:
+    - http:
+        path: todos
+        method: post
+~~~
+
