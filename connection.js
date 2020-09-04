@@ -1,7 +1,7 @@
 const mysql = require('mysql')
 
 const configDB = {
-  host: 'curso-sls-mysql-rds.codtjvp6st5i.us-east-1.rds.amazonaws.com',
+  host: 'curso-sls-rds-mysql.cpfivu3eial9.us-east-1.rds.amazonaws.com',
   user: 'curso_sls',
   password: 'secret12',
   port: '3306',

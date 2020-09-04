@@ -28,10 +28,10 @@ provider:
   runtime: nodejs12.x
   vpc:
     securityGroupIds:
-      - sg-038c00d967b30c1c2
+      - sg-02490ee4472eef250
     subnetIds:
-      - subnet-0bf0711a15a2117ae
-      - subnet-068f38f518c46fc4f
+      - subnet-06aff8e5383fac3a4
+      - subnet-0c26b185da97889d7
 
 # you can overwrite defaults here
 #  stage: dev
@@ -91,6 +91,18 @@ functions:
       - http:
           path: todos
           method: post
+  update:
+    handler: crud/todos.update
+    events:
+      - http:
+          path: todos/{todoId}
+          method: put
+  delete:
+    handler: crud/todos.delete
+    events:
+      - http:
+          path: todos/{todoId}
+          method: delete
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details

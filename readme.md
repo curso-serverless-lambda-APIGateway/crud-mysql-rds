@@ -5,8 +5,11 @@
 3. [Creación de la tabla](#createTable)
 4. [Configurar security groups desde serverles.yml](#sgConfiguration)
 5. [Archivo de configuración para crear la conexión a la base de datos](#connection)
-6. [Obtener todos los registros de la tabla](#findAll)
-7. [Añadir un registro a la tabla](#addOne)
+6. [Obtener todos los registros](#findAll)
+7. [Obtener un registro](#findOne)
+8. [Añadir un registro](#addOne)
+9. [Actualizar un registro](#update)
+10. [Eliminar un registro](#delete)
 
 <a name="install"></a>
 ## Inicialización del proyecto
@@ -124,7 +127,7 @@ Creamos un nuevo archivo **connection.js**.
   ~~~
 
 <a name="findAll"></a>
-## Obtener todos los registros de la tabla
+## Obtener todos los registros
 
 Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro de ella el archivo **todos.js** que incluirá todas las funciones referentes a la tabla *todos*.
 
@@ -172,7 +175,7 @@ Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro 
   ~~~
 
 <a name="findOne"></a>
-## Obtener un registro de la tabla
+## Obtener un registro
 
   1. Creamos una nueva función en **todos.js**
 
@@ -210,7 +213,7 @@ findOne:
 ~~~
 
 <a name="addOne"></a>
-## Añadir un registro a la tabla
+## Añadir un registro
 
   1. Creamos la función para añadir un registro dentro del archivo **todos.js**
 
@@ -253,3 +256,81 @@ create:
         method: post
 ~~~
 
+<a name="update"></a>
+## Actualizar un registro
+
+  1. Añadimos la nueva función al archivo **todos.js**
+
+~~~
+module.exports.update = (event, context, callback) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+
+  const body = queryString.parse(event['body']);
+
+  const sql = 'UPDATE todos SET todo = ? WHERE id = ?';
+  connection.query(sql, [body.todo, event.pathParameters.todoId], (error, result) => {
+    if (error) {
+      callback({
+        statusCode: 500,
+        body: JSON.stringify(error)
+      })
+    } else {
+      callback(null, {
+        statusCode: 200,
+        body: JSON.stringify({
+          res: `Tarea actualizada correctamente`
+        })
+      })
+    }
+  })
+};
+~~~
+
+  2. Actualizamos *functions* **serverless.yml** para incluir la nueva función
+
+~~~
+update:
+  handler: crud/todos.update
+  events:
+    - http:
+        path: todos/{todoId}
+        method: put
+~~~
+
+<a name="delete"></a>
+## Eliminar un registro
+
+  1. Añadimos la nueva función al archivo **todos.js**
+
+~~~
+module.exports.delete = (event, context, callback) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+  const sql = 'DELETE FROM todos WHERE id = ?';
+  connection.query(sql, [event.pathParameters.todoId], (error, result) => {
+    if (error) {
+      callback({
+        statusCode: 500,
+        body: JSON.stringify(error)
+      })
+    } else {
+      callback(null, {
+        statusCode: 200,
+        body: JSON.stringify({
+          res: `Tarea eliminada correctamente`
+        })
+      })
+    }
+  })
+};
+~~~
+
+  2. Actualizamos *functions* en **serverless.yml** para incluir la nueva función
+
+~~~
+delete:
+  handler: crud/todos.delete
+  events:
+    - http:
+        path: todos/{todoId}
+        method: delete
+~~~
