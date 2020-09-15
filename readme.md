@@ -12,7 +12,7 @@
 10. [Eliminar un registro](#delete)
 
 <a name="install"></a>
-## Inicialización del proyecto
+## 1. Inicialización del proyecto
 
 Creamos el proyecto mediante el comando
 
@@ -27,7 +27,7 @@ Instalamos las dependencias que vamos a utilizar:
 `npm install --save mysql querystring serverless-offline`
 
 <a name="mysqInstance"></a>
-## Creacón de instancia MySQL con RDS en AWS
+## 2. Creacón de instancia MySQL con RDS en AWS
 
 Creamos la instancia a través de la consola AWS dentro del servicio RDS como MySQL.
 
@@ -38,7 +38,7 @@ Creamos la instancia a través de la consola AWS dentro del servicio RDS como My
 En la lambda, en la pestaña de permisos, creamos un nuevo rol y establecemos la vpc, al menos dos subnets y el security group. Necesitaremos los IDs en el siguiente punto para automatizar este paso en la creación de nuevas lambdas.
 
 <a name="createTable"></a>
-## Creación de la tabla
+## 3. Creación de la tabla
 
 Desde un cliente MySQL creamos la tabla:
 
@@ -53,7 +53,7 @@ CREATE TABLE curso_sls.todos (
 ~~~
 
 <a name="sgConfiguration"></a>
-## Configurar security groups desde serverles.yml
+## 4. Configurar security groups desde serverles.yml
 
 Dentro del archivo **serverless.yml** en la sección de *provider* añadimos los datos de la vpc:
 
@@ -70,7 +70,7 @@ provider:
 ~~~
 
 <a name="connection"></a>
-## Archivo de configuración para crear la conexión a la base de datos
+## 5. Archivo de configuración para crear la conexión a la base de datos
 
 Creamos un nuevo archivo **connection.js**.
 
@@ -127,7 +127,7 @@ Creamos un nuevo archivo **connection.js**.
   ~~~
 
 <a name="findAll"></a>
-## Obtener todos los registros
+## 6. Obtener todos los registros
 
 Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro de ella el archivo **todos.js** que incluirá todas las funciones referentes a la tabla *todos*.
 
@@ -175,7 +175,7 @@ Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro 
   ~~~
 
 <a name="findOne"></a>
-## Obtener un registro
+## 7. Obtener un registro
 
   1. Creamos una nueva función en **todos.js**
 
@@ -213,7 +213,7 @@ findOne:
 ~~~
 
 <a name="addOne"></a>
-## Añadir un registro
+## 8. Añadir un registro
 
   1. Creamos la función para añadir un registro dentro del archivo **todos.js**
 
@@ -257,7 +257,7 @@ create:
 ~~~
 
 <a name="update"></a>
-## Actualizar un registro
+## 9. Actualizar un registro
 
   1. Añadimos la nueva función al archivo **todos.js**
 
@@ -298,7 +298,7 @@ update:
 ~~~
 
 <a name="delete"></a>
-## Eliminar un registro
+## 10. Eliminar un registro
 
   1. Añadimos la nueva función al archivo **todos.js**
 
