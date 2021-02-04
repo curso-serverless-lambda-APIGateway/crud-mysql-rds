@@ -51,7 +51,7 @@ En la lambda, en la pestaña de permisos, creamos un nuevo rol y establecemos la
 
 Desde un cliente MySQL creamos la tabla:
 
-~~~
+~~~sql
 CREATE DATABASE IF NOT EXISTS curso_sls;
 
 CREATE TABLE curso_sls.todos (
@@ -69,7 +69,7 @@ CREATE TABLE curso_sls.todos (
 
 Dentro del archivo **serverless.yml** en la sección de *provider* añadimos los datos de la vpc:
 
-~~~
+~~~yml
 provider:
   name: aws
   runtime: nodejs12.x
@@ -91,7 +91,7 @@ Creamos un nuevo archivo **connection.js**.
 
   1. Definimos las constantes que almacenarán los parámetros para poder realizar la conexión a la base de datos:
 
-  ~~~
+  ~~~js
   const mysql = require('mysql')
 
   const configDB = {
@@ -106,7 +106,7 @@ Creamos un nuevo archivo **connection.js**.
 
   2. Definimos la función que realizará la conexión:
 
-  ~~~
+  ~~~js
   function initializeConnection(config) {
     function addDisconnectHandler(connection) {
       connection.on("error", function (error) {
@@ -135,7 +135,7 @@ Creamos un nuevo archivo **connection.js**.
 
   3. Instanciamos la conexión y la exportamos:
 
-  ~~~
+  ~~~js
   const connection = initializeConnection(configDB);
 
   module.exports = connection;
@@ -151,14 +151,14 @@ Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro 
 
   1. Establecemos las constantes necesarias para trabajar con la base de datos:
 
-  ~~~
+  ~~~js
   const connection = require('../connection');
   const queryString = require('querystring');
   ~~~
 
   2. Definimos la función que realizará la consulta y devolverá los datos:
 
-  ~~~
+  ~~~js
   module.exports.findAll = (event, context, callback) => {
     context.callbackWaitsForEmptyEventLoop = false;
     const sql = 'SELECT * FROM todos';
@@ -182,7 +182,7 @@ Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro 
 
   3. Definimos la función dentro del archivo **serverless.yml**
 
-  ~~~
+  ~~~yml
   functions:
   findAll:
     handler: crud/todos.findAll
@@ -200,7 +200,7 @@ Para organizar mejor nuestro código, creamos una nueva carpeta *crud* y dentro 
 
   1. Creamos una nueva función en **todos.js**
 
-~~~
+~~~js
 module.exports.findOne = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const sql = 'SELECT * FROM todos WHERE id = ?';
@@ -224,7 +224,7 @@ module.exports.findOne = (event, context, callback) => {
 
   2. Añadimos la nueva función al archivo **serverless.yml**
 
-~~~
+~~~yml
 findOne:
   handler: crud/todos.findOne
   events:
@@ -241,7 +241,7 @@ findOne:
 
   1. Creamos la función para añadir un registro dentro del archivo **todos.js**
 
-~~~
+~~~js
 module.exports.create = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
@@ -271,7 +271,7 @@ module.exports.create = (event, context, callback) => {
 
   2. Actualizamos el parámetro *functions* dentro del archivo **serverless.yml** para incluir la función que acabamos de definir:
 
-~~~
+~~~yml
 create:
   handler: crud/todos.create
   events:
@@ -288,7 +288,7 @@ create:
 
   1. Añadimos la nueva función al archivo **todos.js**
 
-~~~
+~~~js
 module.exports.update = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
@@ -315,7 +315,7 @@ module.exports.update = (event, context, callback) => {
 
   2. Actualizamos *functions* **serverless.yml** para incluir la nueva función
 
-~~~
+~~~yml
 update:
   handler: crud/todos.update
   events:
@@ -332,7 +332,7 @@ update:
 
   1. Añadimos la nueva función al archivo **todos.js**
 
-~~~
+~~~js
 module.exports.delete = (event, context, callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
   const sql = 'DELETE FROM todos WHERE id = ?';
@@ -356,7 +356,7 @@ module.exports.delete = (event, context, callback) => {
 
   2. Actualizamos *functions* en **serverless.yml** para incluir la nueva función
 
-~~~
+~~~yml
 delete:
   handler: crud/todos.delete
   events:
